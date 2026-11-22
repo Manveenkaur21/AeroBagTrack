@@ -1,40 +1,64 @@
 package service;
 
 import model.Complaint;
-import java.util.ArrayList;
+import dao.ComplaintDAO;
 import java.util.List;
+import Exception.InvalidComplaintException;
 
 public class ComplaintService {
-    private final List<Complaint> complaints = new ArrayList<>();
 
-    public boolean registerComplaint(Complaint complaint) {
-        if (complaint == null || searchComplaint(complaint.getComplaintId()) != null) return false;
-        complaints.add(complaint);
-        return true;
+    private final ComplaintDAO complaintDAO = new ComplaintDAO();
+
+    public boolean registerComplaint(Complaint complaint)
+            throws InvalidComplaintException {
+
+        if (complaint == null) {
+            throw new InvalidComplaintException("Complaint cannot be null.");
+        }
+
+        if (complaint.getComplaintId() <= 0) {
+            throw new InvalidComplaintException("Invalid complaint ID.");
+        }
+
+        if (complaint.getPassengerId() <= 0) {
+            throw new InvalidComplaintException("Invalid passenger ID.");
+        }
+
+        if (complaint.getBaggageId() <= 0) {
+            throw new InvalidComplaintException("Invalid baggage ID.");
+        }
+
+        if (complaint.getComplaintDescription() == null ||
+                complaint.getComplaintDescription().isBlank()) {
+            throw new InvalidComplaintException("Complaint details are required.");
+        }
+
+        return complaintDAO.addComplaint(complaint);
     }
 
     public Complaint searchComplaint(int id) {
-        return complaints.stream().filter(c -> c.getComplaintId() == id).findFirst().orElse(null);
+        return complaintDAO.getComplaintById(id);
     }
 
     public void displayAllComplaints() {
-        if (complaints.isEmpty()) System.out.println("No complaints found.");
-        else complaints.forEach(Complaint::displayComplaint);
+        List<Complaint> complaints = complaintDAO.getAllComplaints();
+
+        if (complaints.isEmpty()) {
+            System.out.println("No complaints found.");
+        } else {
+            complaints.forEach(Complaint::displayComplaint);
+        }
     }
 
     public boolean updateComplaintStatus(int id, String status) {
-        Complaint c = searchComplaint(id);
-        if (c == null) return false;
-        c.updateComplaintStatus(status);
-        return true;
+        return complaintDAO.updateComplaintStatus(id, status);
     }
 
     public boolean resolveComplaint(int id, String resolution) {
-        Complaint c = searchComplaint(id);
-        if (c == null) return false;
-        c.resolveComplaint(resolution);
-        return true;
+        return complaintDAO.resolveComplaint(id, resolution);
     }
 
-    public int getTotalComplaints() { return complaints.size(); }
+    public int getTotalComplaints() {
+        return complaintDAO.getAllComplaints().size();
+    }
 }

@@ -1,33 +1,63 @@
 package service;
 
 import model.Baggage;
-import java.util.ArrayList;
-import java.util.HashMap;
+import dao.BaggageDAO;
 import java.util.List;
-import java.util.Map;
+import Exception.InvalidBaggageException;
 
 public class BaggageService {
-    private final Map<Integer, Baggage> baggageMap = new HashMap<>();
 
-    public boolean registerBaggage(Baggage baggage) {
-        if (baggage == null || baggageMap.containsKey(baggage.getBaggageId())) return false;
-        baggageMap.put(baggage.getBaggageId(), baggage);
-        return true;
+    private final BaggageDAO baggageDAO = new BaggageDAO();
+
+    public boolean registerBaggage(Baggage baggage)
+            throws InvalidBaggageException {
+
+        if (baggage == null) {
+            throw new InvalidBaggageException("Baggage cannot be null.");
+        }
+
+        if (baggage.getBaggageId() <= 0) {
+            throw new InvalidBaggageException("Baggage ID must be positive.");
+        }
+
+        if (baggage.getPassengerId() <= 0) {
+            throw new InvalidBaggageException("Passenger ID must be positive.");
+        }
+
+        if (baggage.getBaggageTag() == null || baggage.getBaggageTag().isBlank()) {
+            throw new InvalidBaggageException("Baggage tag is required.");
+        }
+
+        if (baggage.getColor() == null || baggage.getColor().isBlank()) {
+            throw new InvalidBaggageException("Baggage color is required.");
+        }
+
+        return baggageDAO.addBaggage(baggage);
     }
 
-    public Baggage searchBaggage(int id) { return baggageMap.get(id); }
-    public List<Baggage> getBaggageList() { return new ArrayList<>(baggageMap.values()); }
-    public int getTotalBaggage() { return baggageMap.size(); }
+    public Baggage searchBaggage(int id) {
+        return baggageDAO.getBaggageById(id);
+    }
+
+    public List<Baggage> getBaggageList() {
+        return baggageDAO.getAllBaggage();
+    }
+
+    public int getTotalBaggage() {
+        return baggageDAO.getAllBaggage().size();
+    }
 
     public boolean updateBaggageStatus(int id, String status, String location) {
-        Baggage baggage = baggageMap.get(id);
-        if (baggage == null) return false;
-        baggage.updateStatus(status, location);
-        return true;
+        return baggageDAO.updateBaggage(id, status, location);
     }
 
     public void displayAllBaggage() {
-        if (baggageMap.isEmpty()) System.out.println("No baggage registered.");
-        else getBaggageList().stream().sorted().forEach(System.out::println);
+        List<Baggage> baggageList = getBaggageList();
+
+        if (baggageList.isEmpty()) {
+            System.out.println("No baggage registered.");
+        } else {
+            baggageList.stream().sorted().forEach(System.out::println);
+        }
     }
 }

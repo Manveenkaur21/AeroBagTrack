@@ -1,0 +1,12 @@
+# Compiled Java files
+*.class
+out/
+
+# Serialization files
+*.ser
+
+# Generated CSV files
+baggage_records.csv
+
+# IntelliJ settings
+.idea/

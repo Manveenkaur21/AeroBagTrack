@@ -8,6 +8,10 @@ import service.FoundBaggageService;
 import service.MatchingService;
 import util.CSVHandler;
 import util.FileHandler;
+import service.BaggageTask;
+import util.SerializationHandler;
+import Exception.InvalidComplaintException;
+import Exception.InvalidBaggageException;
 
 import java.util.Scanner;
 
@@ -35,6 +39,10 @@ public class Main {
             System.out.println("10. Save baggage to text file");
             System.out.println("11. Save baggage to CSV");
             System.out.println("12. Read baggage text file");
+            System.out.println("13. Run baggage processing tasks");
+            System.out.println("14. Read baggage CSV file");
+            System.out.println("15. Save baggage using serialization");
+            System.out.println("16. Read baggage using deserialization");
             System.out.println("0. Exit");
             int choice = readInt("Choose option: ");
 
@@ -51,6 +59,10 @@ public class Main {
                 case 10 -> FileHandler.saveBaggageRecords(baggageService.getBaggageList());
                 case 11 -> CSVHandler.saveToCSV(baggageService.getBaggageList());
                 case 12 -> FileHandler.readBaggageRecords();
+                case 13 -> runBaggageTasks();
+                case 14 -> CSVHandler.readFromCSV();
+                case 15 -> SerializationHandler.saveBaggage(baggageService.getBaggageList());
+                case 16 -> SerializationHandler.readBaggage();
                 case 0 -> running = false;
                 default -> System.out.println("Invalid option.");
             }
@@ -61,21 +73,27 @@ public class Main {
     private static void registerBaggage() {
         int id = readInt("Baggage ID: ");
         int passengerId = readInt("Passenger ID: ");
+
         System.out.print("Baggage tag: ");
         String tag = input.nextLine();
+
         System.out.print("Description: ");
         String description = input.nextLine();
+
         System.out.print("Color: ");
         String color = input.nextLine();
+
         Baggage b = new Baggage(id, passengerId, tag, description, color);
+
         try {
-            service.BaggageValidator.validate(b);
             if (baggageService.registerBaggage(b)) {
                 trackingService.initializeTracking(id);
                 System.out.println("Baggage registered.");
-            } else System.out.println("Duplicate baggage ID.");
-        } catch (IllegalArgumentException e) {
-            System.out.println("Validation error: " + e.getMessage());
+            } else {
+                System.out.println("Duplicate baggage ID.");
+            }
+        } catch (InvalidBaggageException e) {
+            System.out.println("Invalid Baggage: " + e.getMessage());
         }
     }
 
@@ -92,15 +110,24 @@ public class Main {
     }
 
     private static void registerComplaint() {
-        int complaintId = readInt("Complaint ID: ");
-        int passengerId = readInt("Passenger ID: ");
-        int baggageId = readInt("Baggage ID: ");
-        System.out.print("Complaint details: ");
-        String details = input.nextLine();
-        if (complaintService.registerComplaint(
-                new Complaint(complaintId, passengerId, baggageId, details)))
-            System.out.println("Complaint registered.");
-        else System.out.println("Duplicate complaint ID.");
+        try {
+            int complaintId = readInt("Complaint ID: ");
+            int passengerId = readInt("Passenger ID: ");
+            int baggageId = readInt("Baggage ID: ");
+
+            System.out.print("Complaint details: ");
+            String details = input.nextLine();
+
+            if (complaintService.registerComplaint(
+                    new Complaint(complaintId, passengerId, baggageId, details))) {
+                System.out.println("Complaint registered.");
+            } else {
+                System.out.println("Complaint registration failed.");
+            }
+
+        } catch (InvalidComplaintException e) {
+            System.out.println("Invalid Complaint: " + e.getMessage());
+        }
     }
 
     private static void registerFound() {
@@ -140,5 +167,27 @@ public class Main {
                 System.out.println("Please enter a valid whole number.");
             }
         }
+    }
+
+    private static void runBaggageTasks() {
+
+        Thread t1 = new Thread(new BaggageTask(), "Worker-1");
+        Thread t2 = new Thread(new BaggageTask(), "Worker-2");
+        Thread t3 = new Thread(new BaggageTask(), "Worker-3");
+
+        t1.start();
+        t2.start();
+        t3.start();
+
+        try {
+            t1.join();
+            t2.join();
+            t3.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.out.println("Task interrupted.");
+        }
+
+        System.out.println("All baggage tasks completed.");
     }
 }
